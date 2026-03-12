@@ -80,6 +80,7 @@ def register_user(req: RegisterRequest, session: Session) -> tuple[User, str, st
         life_number=calculate_life_number(req.birth_date),
     )
     session.add(user)
+    session.flush()  # Ensure user row exists before FK reference
 
     # Step 4: Create free subscription
     subscription = Subscription(user_id=supabase_uid, plan="free")
