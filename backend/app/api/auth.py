@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlmodel import Session
 
 from app.db.database import get_session
+from app.rate_limiter import limiter
 from app.schemas.auth import (
     LoginRequest,
     ProfileUpdateRequest,
@@ -34,6 +35,7 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
     response_model=TokenResponse,
     status_code=status.HTTP_201_CREATED,
 )
+@limiter.limit("3/hour")
 def register(
     req: RegisterRequest,
     request: Request,
@@ -65,6 +67,7 @@ def register(
 # ─── Login ────────────────────────────────────────────────────────────────────
 
 @router.post("/login", response_model=TokenResponse)
+@limiter.limit("5/15minutes")
 def login(
     req: LoginRequest,
     request: Request,

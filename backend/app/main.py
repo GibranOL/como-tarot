@@ -2,15 +2,14 @@ import logging
 from datetime import datetime, timezone
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
 from app.config import settings
 from app.db.database import create_db_and_tables
+from app.rate_limiter import limiter
 from app.api.auth import router as auth_router
 from app.api.tarot import router as tarot_router
 from app.api.horoscope import router as horoscope_router
@@ -22,9 +21,6 @@ from app.api.webhooks import router as webhooks_router
 import app.models  # noqa: F401
 
 logger = logging.getLogger("cosmotarot")
-
-# ─── Rate limiter (global) ────────────────────────────────────────────────────
-limiter = Limiter(key_func=get_remote_address)
 
 
 @asynccontextmanager

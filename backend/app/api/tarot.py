@@ -25,6 +25,7 @@ from app.schemas.tarot import (
     TarotistAnswerResponse,
 )
 from app.security.dependencies import get_current_user
+from app.security.sanitizer import sanitize_input, SanitizationError
 from app.services.ai import generate_tarot_interpretation, answer_tarotist_question
 from app.services.limits import check_user_limits
 from app.services.tarot import draw_cards
@@ -128,6 +129,15 @@ def ask_tarotist(
     """
     lang = req.language or current_user.preferred_language
 
+    # Sanitize before any processing — blocks XSS and prompt injection (CLAUDE.md Layer 3)
+    try:
+        clean_question = sanitize_input(req.question)
+    except SanitizationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        )
+
     limits = check_user_limits(session, current_user)
     if not limits["can_ask"]:
         raise HTTPException(
@@ -136,7 +146,7 @@ def ask_tarotist(
         )
 
     answer = answer_tarotist_question(
-        question=req.question,
+        question=clean_question,
         zodiac_sign=current_user.zodiac_sign or "Unknown",
         language=lang,
         onboarding_answers=current_user.onboarding_answers,
@@ -144,7 +154,7 @@ def ask_tarotist(
 
     record = TarotistQuestion(
         user_id=current_user.id,
-        question=req.question,
+        question=clean_question,
         answer=answer,
         is_free=not current_user.is_premium,
         language=lang,

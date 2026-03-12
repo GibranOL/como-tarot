@@ -11,39 +11,21 @@ from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlmodel import Session, SQLModel, create_engine
-from sqlmodel.pool import StaticPool
 
 from app.db.database import get_session
 from app.main import app
 from app.models.user import User
 from app.security.dependencies import get_current_user, get_premium_user
 
-
-# ── Fixtures ──────────────────────────────────────────────────────────────────
-
-@pytest.fixture(name="test_engine", scope="module")
-def test_engine_fixture():
-    engine = create_engine(
-        "sqlite://",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    SQLModel.metadata.create_all(engine)
-    yield engine
-    SQLModel.metadata.drop_all(engine)
-
-
-@pytest.fixture(name="db_session")
-def db_session_fixture(test_engine):
-    with Session(test_engine) as session:
-        yield session
+# ── Fixtures ─────────────────────────────────────────────────────────────────
+# test_engine and db_session come from tests/integration/conftest.py
 
 
 def _make_user(is_premium: bool = False, lang: str = "en") -> User:
+    uid = uuid.uuid4()
     return User(
-        id=uuid.uuid4(),
-        email=f"test-{'prem' if is_premium else 'free'}@cosmo.mx",
+        id=uid,
+        email=f"horoscope-{uid.hex[:8]}@cosmo.mx",
         full_name="Test User",
         auth_provider="email",
         birth_date=date(1990, 7, 25),
@@ -61,6 +43,9 @@ def _make_user(is_premium: bool = False, lang: str = "en") -> User:
 @pytest.fixture(name="free_client")
 def free_client_fixture(db_session):
     user = _make_user(is_premium=False)
+    db_session.add(user)
+    db_session.commit()
+    db_session.refresh(user)
 
     def get_session_override():
         yield db_session
@@ -78,6 +63,9 @@ def free_client_fixture(db_session):
 @pytest.fixture(name="premium_client")
 def premium_client_fixture(db_session):
     user = _make_user(is_premium=True)
+    db_session.add(user)
+    db_session.commit()
+    db_session.refresh(user)
 
     def get_session_override():
         yield db_session

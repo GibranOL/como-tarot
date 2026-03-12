@@ -7,43 +7,25 @@ the external boundaries: JWT validation and the AI service.
 """
 import uuid
 from datetime import date, datetime, timezone
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlmodel import Session, SQLModel, create_engine
-from sqlmodel.pool import StaticPool
 
 from app.db.database import get_session
 from app.main import app
 from app.models.user import User
 from app.security.dependencies import get_current_user
 
-
-# ── Fixtures ──────────────────────────────────────────────────────────────────
-
-@pytest.fixture(name="test_engine", scope="module")
-def test_engine_fixture():
-    engine = create_engine(
-        "sqlite://",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    SQLModel.metadata.create_all(engine)
-    yield engine
-    SQLModel.metadata.drop_all(engine)
-
-
-@pytest.fixture(name="db_session")
-def db_session_fixture(test_engine):
-    with Session(test_engine) as session:
-        yield session
+# ── Fixtures ─────────────────────────────────────────────────────────────────
+# test_engine and db_session come from tests/integration/conftest.py
 
 
 def _make_user(is_premium: bool = False) -> User:
+    uid = uuid.uuid4()
     return User(
-        id=uuid.uuid4(),
-        email="test@cosmo.mx",
+        id=uid,
+        email=f"tarot-{uid.hex[:8]}@cosmo.mx",
         full_name="Test User",
         auth_provider="email",
         birth_date=date(1990, 7, 25),
@@ -70,7 +52,12 @@ def premium_user_fixture():
 
 @pytest.fixture(name="client")
 def client_fixture(db_session, free_user):
-    """Test client: SQLite DB + free user injected as current_user."""
+    """Test client: PostgreSQL DB + free user persisted and injected as current_user.
+    User is inserted so FK constraints on daily_readings/tarotist_questions are satisfied."""
+    db_session.add(free_user)
+    db_session.commit()
+    db_session.refresh(free_user)
+
     def get_session_override():
         yield db_session
 
@@ -86,7 +73,11 @@ def client_fixture(db_session, free_user):
 
 @pytest.fixture(name="premium_client")
 def premium_client_fixture(db_session, premium_user):
-    """Test client: SQLite DB + premium user."""
+    """Test client: PostgreSQL DB + premium user persisted and injected."""
+    db_session.add(premium_user)
+    db_session.commit()
+    db_session.refresh(premium_user)
+
     def get_session_override():
         yield db_session
 
