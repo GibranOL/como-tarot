@@ -7,7 +7,7 @@ import uuid
 import logging
 from datetime import datetime, timezone
 
-from sqlmodel import Session, select
+from sqlmodel import Session
 from supabase import create_client, Client, AuthApiError
 
 from app.config import settings
@@ -126,8 +126,6 @@ def social_auth(provider: str, id_token: str, session: Session, full_name: str |
     Validate a Google or Apple ID token with Supabase, then upsert our User.
     Returns (user, access_token, refresh_token).
     """
-    from app.services.astrology import get_zodiac_sign
-    from app.services.numerology import calculate_life_number
 
     supabase = _get_supabase()
 
