@@ -14,6 +14,8 @@ from app.db.database import create_db_and_tables
 from app.api.auth import router as auth_router
 from app.api.tarot import router as tarot_router
 from app.api.horoscope import router as horoscope_router
+from app.api.numerology import router as numerology_router
+from app.api.compatibility import router as compatibility_router
 from app.api.webhooks import router as webhooks_router
 
 # Import models so SQLModel registers them before create_all
@@ -66,6 +68,8 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(tarot_router)
 app.include_router(horoscope_router)
+app.include_router(numerology_router)
+app.include_router(compatibility_router)
 app.include_router(webhooks_router)
 
 

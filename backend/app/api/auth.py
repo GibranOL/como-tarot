@@ -45,7 +45,6 @@ def register(
     Rate limited: 3 requests / hour per IP.
     """
     from app.services.auth import register_user
-    from app.main import limiter
 
     # Inline rate-limit check (slowapi decorator needs the limiter on the app)
     try:
