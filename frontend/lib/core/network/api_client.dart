@@ -2,7 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-const String _baseUrl = 'http://127.0.0.1:8000';
+const String _baseUrl = 'http://192.168.3.40:8000';
 const String _tokenKey = 'access_token';
 
 final secureStorageProvider = Provider<FlutterSecureStorage>(
