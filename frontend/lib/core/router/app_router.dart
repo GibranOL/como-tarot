@@ -30,7 +30,7 @@ class AppRoutes {
 }
 
 final routerProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authStateProvider);
+  final authState = ref.watch(authNotifierProvider);
 
   return GoRouter(
     initialLocation: AppRoutes.splash,
@@ -44,7 +44,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       if (authState.isLoading) return null;
 
       if (!isLoggedIn && !isAuthRoute) return AppRoutes.login;
-      if (isLoggedIn && state.matchedLocation == AppRoutes.login) {
+      if (isLoggedIn &&
+          (state.matchedLocation == AppRoutes.login ||
+              state.matchedLocation == AppRoutes.register)) {
         return AppRoutes.home;
       }
       return null;

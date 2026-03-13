@@ -22,7 +22,10 @@ class AuthService {
         'birth_date': birthDate,
       },
     );
-    return UserModel.fromJson(response.data as Map<String, dynamic>);
+    final data = response.data as Map<String, dynamic>;
+    final token = data['access_token'] as String;
+    await _api.saveToken(token);
+    return UserModel.fromJson(data['user'] as Map<String, dynamic>);
   }
 
   Future<String> login({

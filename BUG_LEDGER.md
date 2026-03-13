@@ -34,3 +34,14 @@ Every bug found during development is documented here with root cause and lesson
 - **Fix:** Added an explicit `sanitize_input(req.question)` call at the start of `ask_tarotist()` before any business logic. A `SanitizationError` (raised on detected prompt injection or XSS) is caught and converted to `HTTP 400 Bad Request`. The sanitized string is then passed to `answer_tarotist_question()` and stored in the `TarotistQuestion` record.
 - **Lesson:** Defense-in-depth requires sanitization at the **API boundary**, not just inside internal services. Having a sanitizer that is only called conditionally or deep in the call stack creates a gap: future refactors may bypass it entirely. The correct pattern is: *sanitize at the controller layer before any service call*, so the contract is impossible to accidentally skip.
 - **Status:** RESOLVED
+
+---
+
+## Bug 04: Login y Registro Redirigen al Login en Lugar de Home
+
+- **Date:** 2026-03-13
+- **Symptom:** Al completar el registro de un nuevo usuario o al iniciar sesión con uno existente, la app redirigía de vuelta a la pantalla de login en lugar de navegar a la pantalla principal (home).
+- **Root cause:** El router (`routerProvider` en `app_router.dart`) observaba `authStateProvider` (un `FutureProvider`) para determinar si el usuario estaba autenticado. Sin embargo, las pantallas de login y registro llamaban a `authNotifierProvider` (un `AsyncNotifierProvider`) para ejecutar las acciones de autenticación. Al ser dos providers independientes, cuando `authNotifierProvider` se actualizaba con el usuario autenticado, `authStateProvider` nunca se invalidaba ni notificaba al router. El router seguía viendo `valueOrNull == null` (no autenticado) y su redirect sobreescribía el `context.go(AppRoutes.home)` enviando al usuario de vuelta al login.
+- **Fix:** Se cambió el router para que observe `authNotifierProvider` en lugar de `authStateProvider` (`app_router.dart` línea 33). Con esto, el router reconstruye y evalúa el redirect cada vez que login o registro actualizan el estado de auth. Adicionalmente se extendió el redirect automático a home para cubrir también la ruta `/register`, no solo `/login`.
+- **Lesson:** En una arquitectura Riverpod, el router debe observar exactamente el mismo provider que las pantallas de auth actualizan. Tener dos providers que representan "el usuario autenticado" es una duplicación peligrosa: uno puede cambiar sin que el otro se entere. La regla: un solo provider de verdad para el estado de auth, y todos los consumidores (router, pantallas, widgets) lo observan desde ahí.
+- **Status:** RESOLVED
