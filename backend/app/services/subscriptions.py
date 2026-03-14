@@ -21,7 +21,7 @@ from app.models.subscription import Subscription
 logger = logging.getLogger(__name__)
 
 # RevenueCat event types we handle
-_ACTIVATE_EVENTS = {"INITIAL_PURCHASE", "RENEWAL", "UNCANCELLATION"}
+_ACTIVATE_EVENTS = {"INITIAL_PURCHASE", "UNCANCELLATION"}
 _CANCEL_EVENTS = {"CANCELLATION"}
 _EXPIRE_EVENTS = {"EXPIRATION", "BILLING_ISSUE"}
 
