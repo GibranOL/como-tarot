@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import '../../../core/network/api_client.dart';
 import '../../../shared/models/user_model.dart';
+import '../../paywall/services/purchases_service.dart';
 
 class AuthService {
   AuthService({required ApiClient apiClient}) : _api = apiClient;
@@ -38,6 +39,11 @@ class AuthService {
     );
     final token = response.data['access_token'] as String;
     await _api.saveToken(token);
+
+    // Identify user in RevenueCat so purchases are tied to their account
+    final user = await getMe();
+    await PurchasesService.logIn(user.id);
+
     return token;
   }
 
@@ -53,6 +59,7 @@ class AuthService {
       // Ignore network errors on logout — clear token regardless
     } finally {
       await _api.clearToken();
+      await PurchasesService.logOut();
     }
   }
 }

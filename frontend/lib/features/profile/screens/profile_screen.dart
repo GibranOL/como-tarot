@@ -147,7 +147,7 @@ class ProfileScreen extends ConsumerWidget {
             ),
             if (!isPremium)
               TextButton(
-                onPressed: () {},
+                onPressed: () => context.push(AppRoutes.paywall),
                 child: const Text(
                   'Mejorar',
                   style: TextStyle(color: CosmoColors.primary),

@@ -12,6 +12,7 @@ import '../../features/horoscope/screens/horoscope_screen.dart';
 import '../../features/compatibility/screens/compatibility_screen.dart';
 import '../../features/numerology/screens/numerology_screen.dart';
 import '../../features/profile/screens/profile_screen.dart';
+import '../../features/paywall/screens/paywall_screen.dart';
 
 // Route name constants
 class AppRoutes {
@@ -27,6 +28,7 @@ class AppRoutes {
   static const compatibility = '/compatibility';
   static const numerology = '/numerology';
   static const profile = '/profile';
+  static const paywall = '/paywall';
 }
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -93,6 +95,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.profile,
         builder: (context, state) => const ProfileScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.paywall,
+        builder: (context, state) => const PaywallScreen(),
       ),
     ],
     errorBuilder: (context, state) => Scaffold(

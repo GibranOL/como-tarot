@@ -37,6 +37,9 @@ dependencies:
   # Shared preferences (non-sensitive settings)
   shared_preferences: ^2.3.5
 
+  # In-app purchases via RevenueCat
+  purchases_flutter: ^8.0.0
+
   # Icons
   cupertino_icons: ^1.0.8
 
