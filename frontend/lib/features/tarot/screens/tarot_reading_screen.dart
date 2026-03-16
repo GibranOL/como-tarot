@@ -17,6 +17,7 @@ class _TarotReadingScreenState extends ConsumerState<TarotReadingScreen> {
   final _questionController = TextEditingController();
   String? _aiAnswer;
   bool _isAsking = false;
+  String? _askError;
 
   @override
   void dispose() {
@@ -31,42 +32,96 @@ class _TarotReadingScreenState extends ConsumerState<TarotReadingScreen> {
     setState(() {
       _isAsking = true;
       _aiAnswer = null;
+      _askError = null;
     });
 
-    final answer =
-        await ref.read(tarotReadingProvider.notifier).askTarotist(q);
+    try {
+      final answer = await ref
+          .read(tarotReadingNotifierProvider.notifier)
+          .askTarotist(q);
 
-    setState(() {
-      _isAsking = false;
-      _aiAnswer = answer ?? 'Los astros están en silencio por el momento...';
-    });
+      if (mounted) {
+        setState(() {
+          _isAsking = false;
+          _aiAnswer = answer;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isAsking = false;
+          _askError = 'El cosmos está ocupado en este momento. Inténtalo de nuevo.';
+        });
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final readingState = ref.watch(tarotReadingProvider);
+    // Nota: El generador usa el nombre de la clase sin 'Notifier' por defecto
+    // pero como la clase se llama TarotReadingNotifier, el provider es tarotReadingNotifierProvider.
+    final readingState = ref.watch(tarotReadingNotifierProvider);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Tu Lectura de Hoy'),
         backgroundColor: Colors.transparent,
+        elevation: 0,
       ),
       body: Container(
+        height: double.infinity,
         decoration: const BoxDecoration(gradient: CosmoColors.backgroundGradient),
         child: readingState.when(
           loading: () => const Center(
-            child: CircularProgressIndicator(color: CosmoColors.primary),
-          ),
-          error: (e, _) => Center(
-            child: Text(
-              'Error cargando la lectura',
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: CosmoColors.error,
-                  ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(color: CosmoColors.primary),
+                SizedBox(height: 16),
+                Text('Consultando a los astros...', 
+                  style: TextStyle(color: CosmoColors.textSecondary)),
+              ],
             ),
           ),
+          error: (e, _) => _buildError(context, e),
           data: (reading) =>
               reading == null ? _buildEmpty(context) : _buildReading(context, reading),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildError(BuildContext context, Object error) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.cloud_off, color: CosmoColors.error, size: 48),
+            const SizedBox(height: 16),
+            Text(
+              'No pudimos conectar con el universo',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: CosmoColors.textPrimary,
+                  ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Asegúrate de tener conexión a internet o inténtalo más tarde.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: CosmoColors.textSecondary,
+                  ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () => ref.read(tarotReadingNotifierProvider.notifier).refresh(),
+              icon: const Icon(Icons.refresh),
+              label: const Text('Reintentar'),
+            ),
+          ],
         ),
       ),
     );
@@ -76,13 +131,20 @@ class _TarotReadingScreenState extends ConsumerState<TarotReadingScreen> {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
-        child: Text(
-          'Tu lectura de hoy aún no está lista.\nVuelve pronto.',
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: CosmoColors.textSecondary,
-                height: 1.8,
-              ),
-          textAlign: TextAlign.center,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.auto_awesome, color: CosmoColors.textSecondary, size: 48),
+            const SizedBox(height: 16),
+            Text(
+              'Tu lectura de hoy aún no está lista.\nVuelve pronto.',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: CosmoColors.textSecondary,
+                    height: 1.8,
+                  ),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
       ),
     );
@@ -242,6 +304,14 @@ class _TarotReadingScreenState extends ConsumerState<TarotReadingScreen> {
               maxLines: 3,
               minLines: 1,
             ),
+            if (_askError != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  _askError!,
+                  style: const TextStyle(color: CosmoColors.error, fontSize: 12),
+                ),
+              ),
             const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,

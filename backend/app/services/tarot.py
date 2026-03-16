@@ -1,13 +1,16 @@
 """
-Tarot service — full 78-card Rider-Waite deck with bilingual meanings.
+Tarot service — full 78-card Rider-Waite deck from Database.
 Provides card drawing logic for 3-card spreads.
 """
-import json
 import random
-from pathlib import Path
+import logging
 from typing import Literal
+from sqlmodel import Session, select
 
-_DATA_DIR = Path(__file__).parent.parent / "data"
+from app.db.database import engine
+from app.models.tarot import TarotCard
+
+logger = logging.getLogger(__name__)
 
 SpreadType = Literal["past_present_future", "situation_action_outcome"]
 
@@ -18,20 +21,10 @@ _SPREAD_POSITIONS: dict[SpreadType, list[str]] = {
 }
 
 
-def _load_deck() -> list[dict]:
-    """Load the full 78-card deck from JSON (lazy, cached at module level)."""
-    path = _DATA_DIR / "tarot_deck.json"
-    with path.open(encoding="utf-8") as f:
-        return json.load(f)
-
-
-# Module-level cache — loaded once on first import.
-_DECK: list[dict] = _load_deck()
-
-
-def get_full_deck() -> list[dict]:
-    """Return the full 78-card deck."""
-    return _DECK
+def get_full_deck() -> list[TarotCard]:
+    """Return the full 78-card deck from the database."""
+    with Session(engine) as session:
+        return session.exec(select(TarotCard)).all()
 
 
 def draw_cards(
@@ -39,7 +32,7 @@ def draw_cards(
     spread_type: SpreadType = "past_present_future",
 ) -> list[dict]:
     """
-    Draw n unique cards from the deck, each with an upright/reversed orientation
+    Draw n unique cards from the database, each with an upright/reversed orientation
     and a positional label matching the spread type.
 
     Returns a list of card dicts enriched with:
@@ -47,39 +40,46 @@ def draw_cards(
       - position: e.g. "past" | "present" | "future"
       - position_index: 0-based index in the spread
     """
-    if n < 1 or n > len(_DECK):
-        raise ValueError(f"n must be between 1 and {len(_DECK)}, got {n}")
+    with Session(engine) as session:
+        all_cards = session.exec(select(TarotCard)).all()
+        
+        if n < 1 or n > len(all_cards):
+            raise ValueError(f"n must be between 1 and {len(all_cards)}, got {n}")
 
-    selected = random.sample(_DECK, k=n)
-    positions = _SPREAD_POSITIONS[spread_type]
+        selected = random.sample(all_cards, k=n)
+        positions = _SPREAD_POSITIONS[spread_type]
 
-    result = []
-    for i, card in enumerate(selected):
-        enriched = dict(card)  # shallow copy so we don't mutate the cached deck
-        enriched["orientation"] = random.choice(["upright", "reversed"])
-        enriched["position"] = positions[i] if i < len(positions) else f"card_{i + 1}"
-        enriched["position_index"] = i
-        result.append(enriched)
+        result = []
+        for i, card in enumerate(selected):
+            # Convert to dict for API response and enrich with session state
+            card_dict = card.model_dump()
+            card_dict["orientation"] = random.choice(["upright", "reversed"])
+            card_dict["position"] = positions[i] if i < len(positions) else f"card_{i + 1}"
+            card_dict["position_index"] = i
+            result.append(card_dict)
 
-    return result
+        return result
 
 
-def get_card_by_id(card_id: int) -> dict | None:
+def get_card_by_id(card_id: int) -> TarotCard | None:
     """Return a single card by its numeric id, or None if not found."""
-    for card in _DECK:
-        if card["id"] == card_id:
-            return card
-    return None
+    with Session(engine) as session:
+        return session.get(TarotCard, card_id)
 
 
-def get_card_meaning(card: dict, language: str = "es") -> str:
+def get_card_meaning(card: dict | TarotCard, language: str = "es") -> str:
     """
     Return the human-readable meaning for a drawn card (includes orientation).
-    `card` must have an 'orientation' key (as returned by draw_cards).
+    `card` must have an 'orientation' key if it's a dict.
     """
-    orientation = card.get("orientation", "upright")
     lang = language if language in ("es", "en") else "es"
-
-    if orientation == "upright":
-        return card.get(f"meaning_upright_{lang}", card.get("meaning_upright_en", ""))
-    return card.get(f"meaning_reversed_{lang}", card.get("meaning_reversed_en", ""))
+    
+    if isinstance(card, dict):
+        orientation = card.get("orientation", "upright")
+        if orientation == "upright":
+            return card.get(f"meaning_upright_{lang}", "")
+        return card.get(f"meaning_reversed_{lang}", "")
+    
+    # If it's a model instance, we need the orientation from somewhere else 
+    # (this helper is mostly used with enriched dicts from draw_cards)
+    return ""

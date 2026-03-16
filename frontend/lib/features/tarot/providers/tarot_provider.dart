@@ -1,42 +1,42 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../core/network/api_client.dart';
 import '../../../shared/models/tarot_reading_model.dart';
 
-final tarotReadingProvider =
-    AsyncNotifierProvider<TarotReadingNotifier, TarotReadingModel?>(
-  TarotReadingNotifier.new,
-);
+part 'tarot_provider.g.dart';
 
-class TarotReadingNotifier extends AsyncNotifier<TarotReadingModel?> {
+@riverpod
+class TarotReadingNotifier extends _$TarotReadingNotifier {
   @override
-  Future<TarotReadingModel?> build() => _fetchDaily();
+  FutureOr<TarotReadingModel?> build() => _fetchDaily();
 
   Future<TarotReadingModel?> _fetchDaily() async {
-    try {
-      final api = ref.read(apiClientProvider);
-      final response = await api.dio.get('/api/tarot/daily');
-      return TarotReadingModel.fromJson(
-          response.data as Map<String, dynamic>);
-    } catch (_) {
-      return null;
-    }
+    final api = ref.watch(apiClientProvider);
+    final response = await api.dio.get('/api/tarot/daily');
+    
+    // Si la respuesta es exitosa pero vacía, o si hay un error de negocio
+    // el interceptor de Dio ya lo maneja o lanza una excepción.
+    return TarotReadingModel.fromJson(response.data as Map<String, dynamic>);
   }
 
+  /// Refresca la lectura diaria. Los errores se propagarán al estado del provider.
   Future<void> refresh() async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(_fetchDaily);
   }
 
-  Future<String?> askTarotist(String question) async {
-    try {
-      final api = ref.read(apiClientProvider);
-      final response = await api.dio.post(
-        '/api/tarot/ask',
-        data: {'question': question},
-      );
-      return response.data['answer'] as String?;
-    } catch (e) {
-      return null;
+  /// Envía una pregunta al tarotista AI. 
+  /// Mantiene la lectura actual mientras se espera la respuesta.
+  Future<String> askTarotist(String question) async {
+    final api = ref.watch(apiClientProvider);
+    final response = await api.dio.post(
+      '/api/tarot/ask',
+      data: {'question': question},
+    );
+    
+    final answer = response.data['answer'] as String?;
+    if (answer == null) {
+      throw Exception('El universo no ha podido responder en este momento.');
     }
+    return answer;
   }
 }

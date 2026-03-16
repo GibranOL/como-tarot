@@ -1,20 +1,24 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+
+part 'api_client.g.dart';
 
 const String _baseUrl = 'http://192.168.3.40:8000';
 const String _tokenKey = 'access_token';
 
-final secureStorageProvider = Provider<FlutterSecureStorage>(
-  (_) => const FlutterSecureStorage(
+@riverpod
+FlutterSecureStorage secureStorage(SecureStorageRef ref) {
+  return const FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
-  ),
-);
+  );
+}
 
-final apiClientProvider = Provider<ApiClient>((ref) {
+@riverpod
+ApiClient apiClient(ApiClientRef ref) {
   final storage = ref.watch(secureStorageProvider);
   return ApiClient(storage: storage);
-});
+}
 
 class ApiClient {
   ApiClient({required FlutterSecureStorage storage}) : _storage = storage {
