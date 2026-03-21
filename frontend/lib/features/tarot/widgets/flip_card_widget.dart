@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../../core/constants/colors.dart';
+import '../../../core/utils/tarot_card_image_helper.dart';
 
 class FlipCardWidget extends StatefulWidget {
   const FlipCardWidget({
@@ -9,12 +10,15 @@ class FlipCardWidget extends StatefulWidget {
     required this.isReversed,
     required this.cardName,
     required this.onTap,
+    this.cardImagePath,
   });
 
   final bool isFlipped;
   final bool isReversed;
   final String cardName;
   final VoidCallback onTap;
+  /// WebP asset path for the card front. If null, falls back to the icon placeholder.
+  final String? cardImagePath;
 
   @override
   State<FlipCardWidget> createState() => _FlipCardWidgetState();
@@ -84,23 +88,25 @@ class _FlipCardWidgetState extends State<FlipCardWidget>
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: CosmoColors.primary, width: 1.5),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF1A1A3E), Color(0xFF0A0A1A)],
-        ),
       ),
-      child: const Center(
-        child: Icon(
-          Icons.auto_awesome,
-          color: CosmoColors.primary,
-          size: 32,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(11),
+        child: Image.asset(
+          TarotCardImageHelper.cardBackPath,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stack) => Container(
+            color: const Color(0xFF1A1A3E),
+            child: const Center(
+              child: Icon(Icons.auto_awesome, color: CosmoColors.primary, size: 32),
+            ),
+          ),
         ),
       ),
     );
   }
 
   Widget _buildCardFront() {
+    final imagePath = widget.cardImagePath;
     return RotatedBox(
       quarterTurns: widget.isReversed ? 2 : 0,
       child: Container(
@@ -112,31 +118,29 @@ class _FlipCardWidgetState extends State<FlipCardWidget>
             color: widget.isReversed ? CosmoColors.secondary : CosmoColors.primary,
             width: 2,
           ),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: widget.isReversed
-                ? [
-                    const Color(0xFF3A1A5E),
-                    const Color(0xFF1A0A2E),
-                  ]
-                : [
-                    const Color(0xFF2A1A1A),
-                    const Color(0xFF1A0A0A),
-                  ],
-          ),
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.auto_awesome,
-              color: widget.isReversed
-                  ? CosmoColors.secondary
-                  : CosmoColors.primary,
-              size: 28,
-            ),
-          ],
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: imagePath != null
+              ? Image.asset(
+                  imagePath,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stack) => _cardFrontFallback(),
+                )
+              : _cardFrontFallback(),
+        ),
+      ),
+    );
+  }
+
+  Widget _cardFrontFallback() {
+    return Container(
+      color: widget.isReversed ? const Color(0xFF3A1A5E) : const Color(0xFF2A1A1A),
+      child: Center(
+        child: Icon(
+          Icons.auto_awesome,
+          color: widget.isReversed ? CosmoColors.secondary : CosmoColors.primary,
+          size: 28,
         ),
       ),
     );

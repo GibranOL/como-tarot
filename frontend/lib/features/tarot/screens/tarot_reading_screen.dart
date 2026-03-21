@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/colors.dart';
+import '../../../core/utils/tarot_card_image_helper.dart';
 import '../../../shared/models/tarot_reading_model.dart';
 import '../providers/tarot_provider.dart';
 import '../widgets/flip_card_widget.dart';
@@ -205,6 +206,7 @@ class _TarotReadingScreenState extends ConsumerState<TarotReadingScreen> {
                 isFlipped: _flipped[i],
                 isReversed: card.isReversed,
                 cardName: card.name,
+                cardImagePath: TarotCardImageHelper.imagePath(card),
                 onTap: () => setState(() => _flipped[i] = true),
               ),
               if (_flipped[i]) ...[

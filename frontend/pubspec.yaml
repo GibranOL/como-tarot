@@ -60,5 +60,11 @@ flutter:
   assets:
     - assets/images/
     - assets/animations/
+    - assets/images/Cartas_WebP_Ready/Assets Especiales/
+    - assets/images/Cartas_WebP_Ready/Major Arcana/
+    - assets/images/Cartas_WebP_Ready/Minor Arcana — Cups/
+    - assets/images/Cartas_WebP_Ready/Minor Arcana — Pentacles/
+    - assets/images/Cartas_WebP_Ready/Minor Arcana — Swords/
+    - assets/images/Cartas_WebP_Ready/Minor Arcana — Wands/
 
   # Fonts loaded via google_fonts package at runtime — no local font files needed
